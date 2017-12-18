@@ -3,3 +3,6 @@
 /modbus4J-cdc.jar
 /modbus4J-doc.zip
 /modbus4J-src.zip
+git rm --cached .project
+git rm --cached .classpath
+git rm --cached -r .settings
