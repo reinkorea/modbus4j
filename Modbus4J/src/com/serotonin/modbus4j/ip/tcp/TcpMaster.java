@@ -58,19 +58,30 @@ public class TcpMaster extends ModbusMaster {
     private short nextTransactionId = 0;
     private final IpParameters ipParameters;
     private final boolean keepAlive;
+    private final boolean autoIncrementTransactionId;
 
     // Runtime fields.
     private Socket socket;
     private Transport transport;
     private MessageControl conn;
 
-    public TcpMaster(IpParameters params, boolean keepAlive) {
-        ipParameters = params;
+    public TcpMaster(IpParameters params, boolean keepAlive, boolean autoIncrementTransactionId) {
+        this.ipParameters = params;
         this.keepAlive = keepAlive;
+        this.autoIncrementTransactionId = autoIncrementTransactionId;
+    }
+    
+    
+    public TcpMaster(IpParameters params, boolean keepAlive) {
+        this(params, keepAlive, true);
     }
 
+    public void setNextTransactionId(short id) {
+        this.nextTransactionId = id;
+    }
+    
     protected short getNextTransactionId() {
-        return nextTransactionId++;
+        return nextTransactionId;
     }
 
     @Override
@@ -112,8 +123,11 @@ public class TcpMaster extends ModbusMaster {
         OutgoingRequestMessage ipRequest;
         if (ipParameters.isEncapsulated())
             ipRequest = new EncapMessageRequest(request);
-        else
+        else {
+            if(autoIncrementTransactionId)
+                this.nextTransactionId++;
             ipRequest = new XaMessageRequest(request, getNextTransactionId());
+        }
 
         if(LOG.isDebugEnabled()){
 	    	StringBuilder sb = new StringBuilder();
@@ -164,6 +178,7 @@ public class TcpMaster extends ModbusMaster {
                     return ipResponse.getModbusResponse();
                 }
                 catch (Exception e2) {
+                    closeConnection();
         			LOG.debug("Exception: " + e2.getMessage() + " " + e2.getLocalizedMessage());
                     throw new ModbusTransportException(e2, request.getSlaveId());
                 }
